@@ -1,0 +1,39 @@
+from dotenv import load_dotenv
+import os
+import requests
+from pathlib import Path
+import json
+from datetime import datetime
+
+load_dotenv()
+
+BASE_DIR=Path(__file__).resolve().parents[0]
+RAW_DIR=BASE_DIR/'data'/'raw'
+RAW_DIR.mkdir(parents=True,exist_ok=True)
+
+LAT=os.getenv("LAT")
+LON=os.getenv("LON")
+FORECAST_DAYS=int(os.getenv("FORECAST_DAYS"))
+
+def extract_weather_data(lat:str=LAT,lon:str=LON,days:int=FORECAST_DAYS):
+    url = "https://api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "hourly": "temperature_2m,relativehumidity_2m,windspeed_10m",
+        "forecast_days": days,
+        "timezone": "auto"
+    }
+ 
+    print(f"⏳ Requesting weather data for lat={lat}, lon={lon}, days={days} ...")
+    resp = requests.get(url, params=params, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+ 
+    filename = RAW_DIR / f"weather_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    filename.write_text(json.dumps(data, indent=2))
+    print(f"✅ Extracted weather data and saved to: {filename}")
+    return str(filename)
+ 
+if __name__ == "__main__":
+    extract_weather_data()
